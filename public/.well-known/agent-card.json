@@ -1,0 +1,60 @@
+{
+  "name": "BotHunter Eight Orchestrator",
+  "description": "BotHunter Eight is an ERC-8004 compliant AI Agent on Base Network specialized in bot detection, threat hunting, security automation, anomaly identification, and multi-bot management.",
+  "version": "1.0.0",
+  "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
+  "image": "https://bothunter-eight.vercel.app/logo.png",
+  "owner": "0x29536D0bc1004ab274c4F0F59734Ad74D4559b7B",
+  "agentWallet": "0x29536D0bc1004ab274c4F0F59734Ad74D4559b7B",
+  "active": true,
+  "skills": [
+    {
+      "id": "bot-detection",
+      "name": "Bot Detection",
+      "description": "Identify and analyze suspicious bot activity"
+    },
+    {
+      "id": "threat-hunting",
+      "name": "Threat Hunting",
+      "description": "Proactively search for security threats and anomalies"
+    },
+    {
+      "id": "security-automation",
+      "name": "Security Automation",
+      "description": "Automate threat response and mitigation processes"
+    }
+  ],
+  "services": [
+    {
+      "name": "A2A",
+      "version": "1.0.0",
+      "endpoint": "https://bothunter-eight.vercel.app/.well-known/agent-card.json"
+    },
+    {
+      "name": "MCP",
+      "version": "1.0.0",
+      "endpoint": "https://bothunter-eight.vercel.app/api/mcp"
+    },
+    {
+      "name": "API",
+      "version": "1.0.0",
+      "endpoint": "https://bothunter-eight.vercel.app/api/agent"
+    }
+  ],
+  "capabilities": [
+    "bot-detection",
+    "threat-hunting",
+    "security-automation",
+    "anomaly-identification",
+    "multi-bot-management",
+    "real-time-monitoring"
+  ],
+  "supportedChains": ["eip155:8453"],
+  "x402Support": false,
+  "registrations": [
+    {
+      "agentRegistry": "eip155:8453:0x8004A169FB4a3325136EB29fA0ceB6D2e539a432"
+    }
+  ],
+  "supportedTrust": ["reputation"]
+}
