@@ -19,23 +19,28 @@ async function startServer() {
       tools: [
         {
           name: "scan_bots",
-          description: "Scan for suspicious bot activity"
+          description: "Scan for suspicious bot activity",
+          inputSchema: { type: "object", properties: {} }
         },
         {
           name: "hunt_threats",
-          description: "Actively hunt for security threats"
+          description: "Actively hunt for security threats",
+          inputSchema: { type: "object", properties: {} }
         },
         {
           name: "analyze_behavior",
-          description: "Analyze user or bot behavior"
+          description: "Analyze user or bot behavior",
+          inputSchema: { type: "object", properties: {} }
         },
         {
           name: "get_security_status",
-          description: "Get current security status"
+          description: "Get current security status",
+          inputSchema: { type: "object", properties: {} }
         },
         {
           name: "auto_mitigate",
-          description: "Automatically mitigate detected threats"
+          description: "Automatically mitigate detected threats",
+          inputSchema: { type: "object", properties: {} }
         }
       ],
       prompts: [],
