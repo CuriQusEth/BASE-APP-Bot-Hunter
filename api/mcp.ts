@@ -8,7 +8,7 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
       name: "BotHunter Eight MCP Server",
       status: "active",
       description: "Advanced MCP Endpoint for Bot Detection & Security Orchestration",
-      mcpTools: [
+      tools: [
         {
           name: "scan_bots",
           description: "Scan for suspicious bot activity"
@@ -30,6 +30,8 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
           description: "Automatically mitigate detected threats"
         }
       ],
+      prompts: [],
+      resources: [],
       capabilities: [
         "bot-detection",
         "threat-hunting",
