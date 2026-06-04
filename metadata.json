@@ -1,0 +1,8 @@
+{
+  "name": "Bot Hunter",
+  "description": "A fast-paced, futuristic action shooter where you are an elite Bot Hunter.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
