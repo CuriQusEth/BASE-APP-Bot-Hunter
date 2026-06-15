@@ -5,7 +5,7 @@
  * Allowing smart contracts to trustlessly verify agent signatures or operations.
  */
 
-export const AGENT_REGISTRY = "0x0000000000000000000000000000000000000000";
+export const AGENT_REGISTRY = "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432";
 
 export function verifyAgentAction(agentId: string, actionHash: string) {
   // Placeholder for ERC-8004 verification logic

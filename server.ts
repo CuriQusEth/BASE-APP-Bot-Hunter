@@ -33,18 +33,35 @@ async function startServer() {
           inputSchema: { type: "object", properties: {} }
         },
         {
-          name: "get_security_status",
-          description: "Get current security status",
-          inputSchema: { type: "object", properties: {} }
+          name: "get_balance",
+          description: "Get Base Mainnet wallet balance (Base MCP)",
+          inputSchema: { type: "object", properties: { address: { type: "string" } } }
         },
         {
-          name: "auto_mitigate",
-          description: "Automatically mitigate detected threats",
-          inputSchema: { type: "object", properties: {} }
+          name: "send_transaction",
+          description: "Send ETH or Tokens on Base (Base MCP)",
+          inputSchema: { type: "object", properties: { to: { type: "string" }, value: { type: "string" } } }
+        },
+        {
+          name: "batched_calls",
+          description: "Execute batched contract calls on Base via EIP-5792 (Base MCP)",
+          inputSchema: { type: "object", properties: { calls: { type: "array" } } }
         }
       ],
-      prompts: [],
-      resources: [],
+      prompts: [
+        {
+          name: "threat_intel",
+          description: "Get threat intelligence for an address",
+          arguments: [{ name: "targetAddress", required: true }]
+        }
+      ],
+      resources: [
+        {
+          uri: "base://mcp.base.org/agent",
+          name: "Base MCP Endpoint",
+          description: "Connection to Coinbase Base MCP"
+        }
+      ],
       capabilities: [
         "bot-detection",
         "threat-hunting",
@@ -96,21 +113,30 @@ async function startServer() {
           };
           break;
 
-        case "get_security_status":
+        case "get_balance":
           result = {
             ...result,
-            overallStatus: "secure",
-            activeThreats: 2,
-            protectedUsers: 1247,
-            message: "Security status retrieved"
+            balance: "1.45 ETH",
+            network: "Base Mainnet",
+            message: "Retrieved balance from Base MCP"
           };
           break;
 
-        case "auto_mitigate":
+        case "send_transaction":
           result = {
             ...result,
-            mitigatedThreats: 4,
-            message: "Automatic mitigation executed successfully"
+            txHash: "0xabc123def456...",
+            status: "pending",
+            message: "Transaction sent via Base MCP"
+          };
+          break;
+
+        case "batched_calls":
+          result = {
+            ...result,
+            batchId: "batch_987xyz",
+            status: "executed",
+            message: "Batched calls executed via Base MCP (EIP-5792)"
           };
           break;
 

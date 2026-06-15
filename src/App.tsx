@@ -3,20 +3,23 @@ import { useGameStore } from './lib/store';
 import { TitleScreen } from './components/screens/TitleScreen';
 import { GameScreen } from './components/screens/GameScreen';
 import { GameOverScreen } from './components/screens/GameOverScreen';
-import { useAccount, useSendTransaction } from 'wagmi';
+import { useAccount } from 'wagmi';
+import { useAttributedTransaction } from './lib/transactions';
 import { Sun } from 'lucide-react';
 import { parseEther } from 'viem';
 
 export default function App() {
   const { screen } = useGameStore();
   const { isConnected } = useAccount();
-  const { sendTransaction } = useSendTransaction();
+  const { sendTransaction } = useAttributedTransaction();
 
   const sendGMTransaction = () => {
+    // 0x42c4c0d0 is getBlockNumber() on Multicall3
+    const calldata = '0x42c4c0d0676d'; // 676d is gm
     sendTransaction({
-      to: '0xcD0dd3716C5561De47a24949335dF8a8CD8F71a3',
+      to: '0xcA11bde05977b3631167028862bE2a173976CA11', // Multicall3
       value: parseEther('0'),
-      data: '0x676d'
+      data: calldata as `0x${string}`
     });
   };
 

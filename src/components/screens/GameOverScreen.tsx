@@ -2,40 +2,43 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../../lib/store';
 import { motion } from 'motion/react';
 import { Skull, ShieldAlert, Crosshair } from 'lucide-react';
-import { useAccount, useSignMessage } from 'wagmi';
+import { useAccount } from 'wagmi';
+import { useAttributedTransaction } from '../../lib/transactions';
 
 export function GameOverScreen() {
   const { setScreen, score, wave, kills, highestWave, updateHighestWave } = useGameStore();
-  const { isConnected } = useAccount();
-  const { signMessage } = useSignMessage();
-  const [signature, setSignature] = useState<string | null>(null);
+  const { isConnected, address } = useAccount();
+  const [txHash, setTxHash] = useState<string | null>(null);
+  const { sendTransactionAsync } = useAttributedTransaction();
 
   useEffect(() => {
     updateHighestWave(wave);
   }, [wave, updateHighestWave]);
 
-  const handleRecordScore = () => {
-    if (!isConnected) {
+  const handleRecordScore = async () => {
+    if (!isConnected || !address) {
       alert("Connect wallet to record score!");
       return;
     }
     
-    // SIWE-like score signature
-    const message = `BOT HUNTER
-Recording Hunt Results...
-Score: ${score}
-Wave: ${wave}
-Kills: ${kills}
-Highest Wave: ${Math.max(highestWave, wave)}
-Nonce: ${Math.floor(Math.random() * 1000000)}
-Verify Agent Action (ERC-8004 compatible)`;
-    
-    signMessage({ account: undefined as any, message }, {
-      onSuccess: (sig) => {
-        setSignature(sig);
-        console.log("Recorded score with signature:", sig);
-      }
-    });
+    // Create an on-chain record for the score via a call to Multicall3.getBlockNumber() (0x42c4c0d0)
+    // We append the score data so it becomes arbitrary trailing data that EVM ignores
+    const scoreData = `SCORE:${score}:WAVE:${wave}:KILLS:${kills}`;
+    const scoreHex = Array.from(new TextEncoder().encode(scoreData))
+      .map(b => b.toString(16).padStart(2, '0')).join('');
+      
+    // The attribution is automatically appended by useAttributedTransaction
+    try {
+      const hash = await sendTransactionAsync({
+          to: '0xcA11bde05977b3631167028862bE2a173976CA11', // Multicall3
+          value: 0n,
+          data: `0x42c4c0d0${scoreHex}` as `0x${string}`,
+      });
+      setTxHash(hash);
+      console.log("Recorded score with tx:", hash);
+    } catch (err) {
+      console.error("Failed to record score:", err);
+    }
   };
 
   return (
@@ -80,15 +83,15 @@ Verify Agent Action (ERC-8004 compatible)`;
           
           <button 
             onClick={handleRecordScore}
-            disabled={!!signature}
+            disabled={!!txHash}
             className={`w-full py-3 border font-mono text-xs tracking-widest uppercase rounded-lg flex items-center justify-center gap-2 transition-all ${
-              signature 
+              txHash 
               ? "bg-green-500/10 border-green-500/30 text-green-400 cursor-default" 
               : "bg-[#0a0a1a] border-fuchsia-500/30 hover:border-fuchsia-400 text-fuchsia-400 shadow-[0_0_15px_rgba(255,0,255,0.1)] active:scale-95"
             }`}
           >
             <ShieldAlert size={16} />
-            {signature ? "RECORD SECURED ON-CHAIN" : "RECORD THIS HUNT ON-CHAIN"}
+            {txHash ? "RECORD SECURED ON-CHAIN" : "RECORD THIS HUNT ON-CHAIN"}
           </button>
 
           <button 

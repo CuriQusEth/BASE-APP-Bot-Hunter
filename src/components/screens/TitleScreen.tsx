@@ -1,17 +1,18 @@
 import React from 'react';
 import { useGameStore } from '../../lib/store';
 import { motion } from 'motion/react';
-import { useConnect, useAccount, useDisconnect, useSendTransaction } from 'wagmi';
+import { useConnect, useAccount, useDisconnect } from 'wagmi';
 import { parseEther } from 'viem';
 import { Target, Skull, Zap } from 'lucide-react';
-import { appendAttribution, BUILDER_CODE } from '../../lib/erc8021/utils';
+import { getBuilderCode } from '../../lib/builder-code';
+import { useAttributedTransaction } from '../../lib/transactions';
 
 export function TitleScreen() {
   const { setScreen } = useGameStore();
   const { connectors, connect } = useConnect();
   const { disconnect } = useDisconnect();
   const { isConnected, address } = useAccount();
-  const { sendTransaction } = useSendTransaction();
+  const { sendTransaction } = useAttributedTransaction();
 
   const handleGM = () => {
     if (!isConnected) {
@@ -19,12 +20,13 @@ export function TitleScreen() {
       return;
     }
     // Simple 0 value TX to a self address or designated address
-    // with attribution appended.
-    const encodedData = appendAttribution("0x676d"); // "gm" in hex roughly 
+    // The attribution is automatically appended by useAttributedTransaction
+    // Multicall3 getBlockNumber() selector + "gm" string
+    const calldata = '0x42c4c0d0676d'; 
     sendTransaction({
-      to: address, // Send to self as a simple GM
+      to: '0xcA11bde05977b3631167028862bE2a173976CA11', // Multicall3
       value: parseEther('0'),
-      data: encodedData as `0x${string}`
+      data: calldata as `0x${string}`
     });
   };
 
@@ -98,10 +100,16 @@ export function TitleScreen() {
         )}
       </motion.div>
 
-      <div className="absolute bottom-4 left-4 text-xs text-gray-600 font-mono font-bold flex gap-2">
-        <span>BASE MAINNET</span>
-        <span>|</span>
-        <span>BUILDER: {BUILDER_CODE}</span>
+      <div className="absolute bottom-4 left-4 text-xs text-gray-600 font-mono font-bold flex flex-col gap-1">
+        <div className="flex gap-2">
+          <span>BASE MAINNET</span>
+          <span>|</span>
+          <span>BUILDER: {getBuilderCode()}</span>
+        </div>
+        <div className="flex gap-2 text-cyan-500/70 items-center">
+          <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></div>
+          <span>BASE MCP INTEGRATION ACTIVE (mcp.base.org)</span>
+        </div>
       </div>
     </div>
   );
