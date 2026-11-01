@@ -1,39 +1,65 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useGameStore } from '../../lib/store';
 import { motion } from 'motion/react';
-import { useConnect, useAccount, useDisconnect } from 'wagmi';
+import { useConnect, useAccount, useDisconnect, useSwitchChain, useWaitForTransactionReceipt } from 'wagmi';
+import { base, baseSepolia } from 'wagmi/chains';
 import { parseEther } from 'viem';
-import { Target, Skull, Zap } from 'lucide-react';
+import { Target, Skull, Zap, ExternalLink, CheckCircle2, Loader2, RefreshCw } from 'lucide-react';
 import { getBuilderCode } from '../../lib/builder-code';
-import { useAttributedTransaction } from '../../lib/transactions';
+import { useAttributedTransaction, CANONICAL_MULTICALL3 } from '../../lib/transactions';
 
 export function TitleScreen() {
   const { setScreen } = useGameStore();
-  const { connectors, connect } = useConnect();
+  const { connectors, connect, isPending: isConnectPending } = useConnect();
   const { disconnect } = useDisconnect();
-  const { isConnected, address } = useAccount();
-  const { sendTransaction } = useAttributedTransaction();
+  const { isConnected, isConnecting, isReconnecting, address, chainId } = useAccount();
+  const { switchChain, isPending: isSwitching } = useSwitchChain();
+  const { sendTransactionAsync, supportsBatching } = useAttributedTransaction();
 
-  const handleGM = () => {
+  const [gmTxHash, setGmTxHash] = useState<`0x${string}` | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const { isLoading: isConfirming, isSuccess: isGmConfirmed } = useWaitForTransactionReceipt({
+    hash: gmTxHash || undefined,
+  });
+
+  const isWrongNetwork = isConnected && chainId !== base.id && chainId !== baseSepolia.id;
+
+  const handleGM = async () => {
     if (!isConnected) {
-      alert("Connect wallet first to say GM on-chain!");
       return;
     }
-    // Simple 0 value TX to a self address or designated address
-    // The attribution is automatically appended by useAttributedTransaction
-    // Multicall3 getBlockNumber() selector + "gm" string
-    const calldata = '0x42c4c0d0676d'; 
-    sendTransaction({
-      to: '0xcA11bde05977b3631167028862bE2a173976CA11', // Multicall3
-      value: parseEther('0'),
-      data: calldata as `0x${string}`
-    });
+    setErrorMessage(null);
+    setIsSubmitting(true);
+
+    try {
+      // Multicall3 getBlockNumber() selector + "gm" string
+      const calldata = '0x42c4c0d0676d'; 
+      const hash = await sendTransactionAsync({
+        to: CANONICAL_MULTICALL3,
+        value: parseEther('0'),
+        data: calldata as `0x${string}`
+      });
+      setGmTxHash(hash);
+    } catch (err: any) {
+      console.error("GM Transaction failed:", err);
+      setErrorMessage(err?.shortMessage || err?.message || "Transaction cancelled or failed");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const getExplorerUrl = (hash: string) => {
+    return chainId === baseSepolia.id
+      ? `https://sepolia.basescan.org/tx/${hash}`
+      : `https://basescan.org/tx/${hash}`;
   };
 
   return (
     <div className="flex flex-col items-center justify-center h-full w-full relative bg-[radial-gradient(circle_at_center,_#1a1a2e_0%,_#05050b_100%)] overflow-hidden">
       {/* Background Grid */}
-      <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'linear-gradient(#00f3ff 1px, transparent 1px), linear-gradient(90deg, #00f3ff 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
+      <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: 'linear-gradient(#00f3ff 1px, transparent 1px), linear-gradient(90deg, #00f3ff 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
       
       {/* Glow Effects */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vw] md:w-[30vw] md:h-[30vw] bg-cyan-600/20 blur-[100px] rounded-full pointer-events-none"></div>
@@ -60,7 +86,7 @@ export function TitleScreen() {
         initial={{ y: 50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.8, delay: 0.2, type: 'spring' }}
-        className="mt-16 flex flex-col gap-4 z-10 w-64 md:w-80"
+        className="mt-12 flex flex-col gap-4 z-10 w-72 md:w-88"
       >
         <button 
           onClick={() => setScreen('playing')}
@@ -70,29 +96,106 @@ export function TitleScreen() {
           <span className="relative">START HUNT</span>
         </button>
 
-        <div className="h-px w-full bg-gradient-to-r from-transparent via-gray-700 to-transparent my-2"></div>
+        <div className="h-px w-full bg-gradient-to-r from-transparent via-gray-700 to-transparent my-1"></div>
 
-        {!isConnected ? (
+        {/* Four-state wallet UI */}
+        {isReconnecting ? (
+          <div className="flex items-center justify-center gap-2 py-3 bg-[#0a0a1a] border border-cyan-500/20 text-cyan-300 font-mono text-xs rounded-lg">
+            <Loader2 className="animate-spin w-4 h-4 text-cyan-400" />
+            <span>Reconnecting wallet...</span>
+          </div>
+        ) : isConnecting || isConnectPending ? (
+          <div className="flex items-center justify-center gap-2 py-3 bg-[#0a0a1a] border border-cyan-500/20 text-cyan-300 font-mono text-xs rounded-lg">
+            <Loader2 className="animate-spin w-4 h-4 text-cyan-400" />
+            <span>Connecting...</span>
+          </div>
+        ) : !isConnected ? (
+          <div className="flex flex-col gap-2">
+            {connectors.map((connector) => (
+              <button 
+                key={connector.uid}
+                onClick={() => connect({ connector })}
+                className="w-full py-2.5 px-3 bg-[#0a0a1a] border border-cyan-500/30 hover:border-cyan-400 text-cyan-300 font-mono text-xs uppercase tracking-wider rounded-lg shadow-[0_0_15px_rgba(0,243,255,0.1)] transition-all flex items-center justify-between"
+              >
+                <span>Connect {connector.name}</span>
+                <span className="text-[10px] text-cyan-500/60 font-sans">EIP-5792 ready</span>
+              </button>
+            ))}
+          </div>
+        ) : isWrongNetwork ? (
           <button 
-            onClick={() => connect({ connector: connectors[0] })}
-            className="w-full py-3 bg-[#0a0a1a] border border-cyan-500/30 hover:border-cyan-400 text-cyan-400 font-mono text-xs uppercase tracking-widest rounded-lg shadow-[0_0_15px_rgba(0,243,255,0.1)] transition-all"
+            onClick={() => switchChain({ chainId: base.id })}
+            disabled={isSwitching}
+            className="w-full py-3 bg-amber-500/20 border border-amber-500/50 hover:bg-amber-500/30 text-amber-300 font-mono text-xs uppercase tracking-widest rounded-lg flex items-center justify-center gap-2 transition-all"
           >
-            Connect Wallet
+            <RefreshCw className={`w-4 h-4 ${isSwitching ? 'animate-spin' : ''}`} />
+            {isSwitching ? 'Switching Network...' : 'Switch to Base'}
           </button>
         ) : (
-          <div className="flex flex-col gap-2">
-            <div className="text-xs text-center text-gray-500 font-mono">
-              {address?.slice(0,6)}...{address?.slice(-4)}
+          <div className="flex flex-col gap-2 bg-black/40 border border-gray-800 p-3 rounded-xl backdrop-blur-sm">
+            <div className="flex items-center justify-between text-xs font-mono">
+              <span className="text-gray-400 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                {address?.slice(0,6)}...{address?.slice(-4)}
+              </span>
+              <span className="text-[11px] text-cyan-400 font-bold">
+                {chainId === baseSepolia.id ? 'Base Sepolia' : 'Base Mainnet'}
+              </span>
             </div>
+
+            {supportsBatching && (
+              <div className="text-[10px] text-cyan-300/80 font-mono bg-cyan-950/40 px-2 py-1 rounded border border-cyan-800/40 flex items-center justify-between">
+                <span>⚡ Smart Wallet (EIP-5792 Atomic)</span>
+                <span className="text-emerald-400">Active</span>
+              </div>
+            )}
+
             <button 
               onClick={handleGM}
-              className="w-full py-3 bg-gradient-to-r from-fuchsia-600 to-fuchsia-400 text-black font-black text-xs uppercase tracking-widest rounded-lg shadow-[0_0_15px_rgba(255,0,255,0.4)] hover:brightness-110 active:scale-95 transition-all"
+              disabled={isSubmitting || isConfirming}
+              className="w-full py-2.5 bg-gradient-to-r from-fuchsia-600 to-fuchsia-400 text-black font-black text-xs uppercase tracking-widest rounded-lg shadow-[0_0_15px_rgba(255,0,255,0.4)] hover:brightness-110 active:scale-95 disabled:opacity-60 transition-all flex items-center justify-center gap-2"
             >
-              Say GM On-Chain
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Confirm in Wallet...</span>
+                </>
+              ) : isConfirming ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Confirming (200ms canonical)...</span>
+                </>
+              ) : isGmConfirmed ? (
+                <>
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>GM Confirmed!</span>
+                </>
+              ) : (
+                <span>Say GM On-Chain (Base)</span>
+              )}
             </button>
+
+            {gmTxHash && (
+              <a 
+                href={getExplorerUrl(gmTxHash)} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-[11px] font-mono text-cyan-400 hover:text-cyan-300 flex items-center justify-center gap-1 transition-colors"
+              >
+                <span>View on Basescan</span>
+                <ExternalLink size={12} />
+              </a>
+            )}
+
+            {errorMessage && (
+              <div className="text-[10px] text-red-400 font-mono text-center">
+                {errorMessage}
+              </div>
+            )}
+
             <button 
               onClick={() => disconnect()}
-              className="px-6 py-2 text-gray-600 hover:text-gray-400 font-mono text-xs uppercase"
+              className="py-1 text-gray-500 hover:text-gray-300 font-mono text-[11px] uppercase transition-colors"
             >
               Disconnect
             </button>
@@ -100,17 +203,18 @@ export function TitleScreen() {
         )}
       </motion.div>
 
-      <div className="absolute bottom-4 left-4 text-xs text-gray-600 font-mono font-bold flex flex-col gap-1">
-        <div className="flex gap-2">
-          <span>BASE MAINNET</span>
+      <div className="absolute bottom-4 left-4 text-xs text-gray-500 font-mono font-bold flex flex-col gap-1 z-10">
+        <div className="flex gap-2 items-center">
+          <span className="text-cyan-400 font-black">BASE NATIVE 200MS BLOCKS</span>
           <span>|</span>
-          <span>BUILDER: {getBuilderCode()}</span>
+          <span className="text-gray-400">BUILDER: {getBuilderCode()}</span>
         </div>
-        <div className="flex gap-2 text-cyan-500/70 items-center">
+        <div className="flex gap-2 text-cyan-500/80 items-center">
           <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></div>
-          <span>BASE MCP INTEGRATION ACTIVE (mcp.base.org)</span>
+          <span>ERC-8021 CALLED WITH MULTICALL3 & BASE MCP ACTIVE</span>
         </div>
       </div>
     </div>
   );
 }
+

@@ -30,17 +30,18 @@ export default function App() {
       {screen === 'playing' && <GameScreen />}
       {screen === 'gameover' && <GameOverScreen />}
 
-      {isConnected && (
+      {isConnected && screen !== 'title' && (
         <div className="absolute top-4 right-4 z-50">
           <button
             onClick={sendGMTransaction}
-            className="px-3 py-2 rounded-lg bg-[#E8A020]/20 hover:bg-[#E8A020]/30 border border-[#E8A020]/40 text-[#E8A020] transition-colors flex items-center gap-2 font-['Cinzel'] text-xs font-bold"
+            className="px-3 py-2 rounded-lg bg-[#E8A020]/20 hover:bg-[#E8A020]/30 border border-[#E8A020]/40 text-[#E8A020] transition-colors flex items-center gap-2 font-mono text-xs font-bold shadow-lg backdrop-blur-sm"
           >
-            <Sun size={16} />
-            Say GM
+            <Sun size={14} />
+            <span>Say GM (Base)</span>
           </button>
         </div>
       )}
+
     </div>
   );
 }

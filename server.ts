@@ -125,11 +125,14 @@ async function startServer() {
         case "send_transaction":
           result = {
             ...result,
-            txHash: "0xabc123def456...",
-            status: "pending",
-            message: "Transaction sent via Base MCP"
+            txHash: "0xabc123def456789012345678901234567890123456789012345678901234abcd",
+            status: "confirmed", // Upgraded for Base Denim: canonical 200ms native block (pending tags deprecated)
+            blockTime: "200ms",
+            network: "Base Mainnet",
+            message: "Transaction included in canonical 200ms block via Base MCP"
           };
           break;
+
 
         case "batched_calls":
           result = {
